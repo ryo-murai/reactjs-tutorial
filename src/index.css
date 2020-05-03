@@ -41,6 +41,10 @@ ul {
   background: #ddd;
 }
 
+button.current_move {
+  font-weight: bold;
+}
+
 .game {
   display: flex;
   flex-direction: row;
