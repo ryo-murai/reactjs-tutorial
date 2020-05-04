@@ -41,10 +41,12 @@ class Game extends React.Component {
       history: [
         {
           squares: Array(9).fill(null),
+          move: 0,
         },
       ],
       stepNumber: 0,
       xIsNext: true,
+      historySortAscend: true,
     };
   }
 
@@ -61,6 +63,7 @@ class Game extends React.Component {
       history: history.concat([
         {
           squares: squares,
+          move: this.state.stepNumber + 1,
         },
       ]),
       stepNumber: history.length,
@@ -75,15 +78,27 @@ class Game extends React.Component {
     });
   }
 
+  toggleSort() {
+    this.setState({
+      historySortAscend: !this.state.historySortAscend,
+    });
+  }
+
   render() {
     const history = this.state.history;
     const current = history[this.state.stepNumber];
     const winner = calculateWinner(current.squares);
 
-    const moves = history.map((step, move, hist) => {
+    const ascend = this.state.historySortAscend ? 1 : -1;
+    const sortedEntries = Array.from(history).sort(
+      (a, b) => (a.move - b.move) * ascend
+    );
+
+    const moves = sortedEntries.map((step) => {
+      const move = step.move;
       let desc;
       if (move > 0) {
-        const prev = hist[move - 1].squares;
+        const prev = history.find((h) => h.move === move - 1).squares;
         const lastsq = step.squares.findIndex(
           (sq, index) => sq && !prev[index]
         );
@@ -109,6 +124,12 @@ class Game extends React.Component {
       status = "Next player: " + (this.state.xIsNext ? "X" : "O");
     }
 
+    const sortToggle = (
+      <button onClick={() => this.toggleSort()}>
+        {this.state.historySortAscend ? "ascend" : "descend"}
+      </button>
+    );
+
     return (
       <div className="game">
         <div className="game-board">
@@ -119,6 +140,7 @@ class Game extends React.Component {
         </div>
         <div className="game-info">
           <div>{status}</div>
+          <div>{sortToggle}</div>
           <ol>{moves}</ol>
         </div>
       </div>
