@@ -11,30 +11,28 @@ function Square(props) {
   );
 }
 
-class Board extends React.Component {
-  renderSquare(i, shouldHighlight) {
+function Board(props) {
+  const renderSquare = (i, shouldHighlight) => {
     return (
       <Square
-        value={this.props.squares[i]}
+        value={props.squares[i]}
         shouldHighlight={shouldHighlight}
-        onClick={() => this.props.onClick(i)}
+        onClick={() => props.onClick(i)}
       />
     );
-  }
+  };
 
-  render() {
-    const winnerSquares = calculateWinner(this.props.squares);
-    let rows = [];
-    for (let row = 0; row < 9; row = row + 3) {
-      let cols = [];
-      for (let col = 0; col < 3; col++) {
-        const squarePos = row + col;
-        const shouldHighlight =
-          winnerSquares && winnerSquares.some((e) => e === squarePos);
-        cols.push(this.renderSquare(squarePos, shouldHighlight));
-      }
-      rows.push(<div className="board-row">{cols}</div>);
+  const winnerSquares = calculateWinner(props.squares);
+  let rows = [];
+  for (let row = 0; row < 9; row = row + 3) {
+    let cols = [];
+    for (let col = 0; col < 3; col++) {
+      const squarePos = row + col;
+      const shouldHighlight =
+        winnerSquares && winnerSquares.some((e) => e === squarePos);
+      cols.push(renderSquare(squarePos, shouldHighlight));
     }
+    rows.push(<div className="board-row">{cols}</div>);
 
     return <div>{rows}</div>;
   }
