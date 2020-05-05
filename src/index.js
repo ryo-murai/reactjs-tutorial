@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import ReactDOM from "react-dom";
 import "./index.css";
 
@@ -15,6 +15,7 @@ function Board(props) {
   const renderSquare = (i, shouldHighlight) => {
     return (
       <Square
+        key={i}
         value={props.squares[i]}
         shouldHighlight={shouldHighlight}
         onClick={() => props.onClick(i)}
@@ -32,128 +33,120 @@ function Board(props) {
         winnerSquares && winnerSquares.some((e) => e === squarePos);
       cols.push(renderSquare(squarePos, shouldHighlight));
     }
-    rows.push(<div className="board-row">{cols}</div>);
-
-    return <div>{rows}</div>;
+    rows.push(
+      <div key={`rowdiv_${row}`} className="board-row">
+        {cols}
+      </div>
+    );
   }
+  return <div>{rows}</div>;
 }
 
-class Game extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      history: [
-        {
-          squares: Array(9).fill(null),
-          move: 0,
-        },
-      ],
-      stepNumber: 0,
-      xIsNext: true,
-      historySortAscend: true,
-    };
-  }
+function MoveHistory(props) {
+  const [ascend, setAscend] = useState(true);
+  const history = props.history;
+  const sortedEntries = Array.from(history).sort(
+    (a, b) => (a.move - b.move) * (ascend ? 1 : -1)
+  );
 
-  handleClick(i) {
-    const history = this.state.history.slice(0, this.state.stepNumber + 1);
-    const current = history[history.length - 1];
+  const moves = sortedEntries.map((step) => {
+    const move = step.move;
+    let desc;
+    if (move > 0) {
+      const prev = history.find((h) => h.move === move - 1).squares;
+      const lastsq = step.squares.findIndex((sq, index) => sq && !prev[index]);
+      desc = `Go to move #${move} (${parseInt(lastsq / 3)}, ${lastsq % 3})`;
+    } else {
+      desc = "Go to game start";
+    }
+
+    const style = props.stepNumber === move ? "current_move" : null;
+    return (
+      <li key={move}>
+        <button className={style} onClick={() => props.onToggleClicked(move)}>
+          {desc}
+        </button>
+      </li>
+    );
+  });
+
+  return (
+    <div>
+      <div>
+        <button onClick={() => setAscend(!ascend)}>
+          {ascend ? "ascend" : "descend"}
+        </button>
+      </div>
+      <ol>{moves}</ol>
+    </div>
+  );
+}
+
+function Game(props) {
+  const [history, setHistory] = useState([
+    {
+      squares: Array(9).fill(null),
+      move: 0,
+    },
+  ]);
+  const [stepNumber, setStepNumber] = useState(0);
+  const [xIsNext, setXIsNext] = useState(true);
+
+  const handleClick = (i) => {
+    const newHistory = history.slice(0, stepNumber + 1);
+    const current = newHistory[newHistory.length - 1];
 
     const squares = current.squares.slice();
     if (calculateWinner(squares) || squares[i]) {
       return;
     }
-    squares[i] = this.state.xIsNext ? "X" : "O";
-    this.setState({
-      history: history.concat([
+    squares[i] = xIsNext ? "X" : "O";
+    setHistory(
+      newHistory.concat([
         {
           squares: squares,
-          move: this.state.stepNumber + 1,
+          move: stepNumber + 1,
         },
-      ]),
-      stepNumber: history.length,
-      xIsNext: !this.state.xIsNext,
-    });
-  }
-
-  jumpTo(step) {
-    this.setState({
-      stepNumber: step,
-      xIsNext: step % 2 === 0,
-    });
-  }
-
-  toggleSort() {
-    this.setState({
-      historySortAscend: !this.state.historySortAscend,
-    });
-  }
-
-  render() {
-    const history = this.state.history;
-    const current = history[this.state.stepNumber];
-
-    const ascend = this.state.historySortAscend ? 1 : -1;
-    const sortedEntries = Array.from(history).sort(
-      (a, b) => (a.move - b.move) * ascend
+      ])
     );
+    setStepNumber(newHistory.length);
+    setXIsNext(!xIsNext);
+  };
 
-    const moves = sortedEntries.map((step) => {
-      const move = step.move;
-      let desc;
-      if (move > 0) {
-        const prev = history.find((h) => h.move === move - 1).squares;
-        const lastsq = step.squares.findIndex(
-          (sq, index) => sq && !prev[index]
-        );
-        desc = `Go to move #${move} (${parseInt(lastsq / 3)}, ${lastsq % 3})`;
-      } else {
-        desc = "Go to game start";
-      }
+  const jumpTo = (step) => {
+    setStepNumber(step);
+    setXIsNext(step % 2 === 0);
+  };
 
-      const style = this.state.stepNumber === move ? "current_move" : null;
-      return (
-        <li key={move}>
-          <button className={style} onClick={() => this.jumpTo(move)}>
-            {desc}
-          </button>
-        </li>
-      );
-    });
+  const current = history[stepNumber];
 
-    let status;
-    const winner = calculateWinner(current.squares);
-    if (winner) {
-      status = "Winner:" + current.squares[winner[0]];
+  let status;
+  const winner = calculateWinner(current.squares);
+  if (winner) {
+    status = "Winner:" + current.squares[winner[0]];
+  } else {
+    if (stepNumber === 9) {
+      status = "Draw";
     } else {
-      if (this.state.stepNumber === 9) {
-        status = "Draw";
-      } else {
-        status = "Next player: " + (this.state.xIsNext ? "X" : "O");
-      }
+      status = "Next player: " + (xIsNext ? "X" : "O");
     }
-
-    const sortToggle = (
-      <button onClick={() => this.toggleSort()}>
-        {this.state.historySortAscend ? "ascend" : "descend"}
-      </button>
-    );
-
-    return (
-      <div className="game">
-        <div className="game-board">
-          <Board
-            squares={current.squares}
-            onClick={(i) => this.handleClick(i)}
-          />
-        </div>
-        <div className="game-info">
-          <div>{status}</div>
-          <div>{sortToggle}</div>
-          <ol>{moves}</ol>
-        </div>
-      </div>
-    );
   }
+
+  return (
+    <div className="game">
+      <div className="game-board">
+        <Board squares={current.squares} onClick={(i) => handleClick(i)} />
+      </div>
+      <div className="game-info">
+        <div>{status}</div>
+        <MoveHistory
+          history={history}
+          stepNumber={stepNumber}
+          onToggleClicked={jumpTo}
+        />
+      </div>
+    </div>
+  );
 }
 
 // ========================================
