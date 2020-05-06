@@ -2,7 +2,13 @@ import React, { useState } from "react";
 import ReactDOM from "react-dom";
 import "./index.css";
 
-function Square(props) {
+type SquareProps = {
+  shouldHighlight: boolean;
+  onClick: () => void;
+  value: string | null;
+};
+
+function Square(props: SquareProps) {
   const style = "square" + (props.shouldHighlight ? " highlight" : "");
   return (
     <button className={style} onClick={props.onClick}>
@@ -11,8 +17,15 @@ function Square(props) {
   );
 }
 
-function Board(props) {
-  const renderSquare = (i, shouldHighlight) => {
+type Squares = Array<string | null>;
+
+type BoardProps = {
+  squares: Squares;
+  onClick: (i: number) => void;
+};
+
+function Board(props: BoardProps) {
+  const renderSquare = (i: number, shouldHighlight: boolean) => {
     return (
       <Square
         key={i}
@@ -30,7 +43,7 @@ function Board(props) {
     for (let col = 0; col < 3; col++) {
       const squarePos = row + col;
       const shouldHighlight =
-        winnerSquares && winnerSquares.some((e) => e === squarePos);
+        winnerSquares !== null && winnerSquares.some((e) => e === squarePos);
       cols.push(renderSquare(squarePos, shouldHighlight));
     }
     rows.push(
@@ -42,7 +55,18 @@ function Board(props) {
   return <div>{rows}</div>;
 }
 
-function MoveHistory(props) {
+type Move = {
+  squares: Squares;
+  move: number;
+};
+
+type MoveHistoryProps = {
+  history: Move[];
+  stepNumber: number;
+  onToggleClicked: (move: number) => void;
+};
+
+function MoveHistory(props: MoveHistoryProps) {
   const [ascend, setAscend] = useState(true);
   const history = props.history;
   const sortedEntries = Array.from(history).sort(
@@ -53,14 +77,16 @@ function MoveHistory(props) {
     const move = step.move;
     let desc;
     if (move > 0) {
-      const prev = history.find((h) => h.move === move - 1).squares;
-      const lastsq = step.squares.findIndex((sq, index) => sq && !prev[index]);
-      desc = `Go to move #${move} (${parseInt(lastsq / 3)}, ${lastsq % 3})`;
+      const prev = history.find((h) => h.move === move - 1)?.squares;
+      const lastsq = step.squares.findIndex(
+        (sq, index) => sq && prev && !prev[index]
+      );
+      desc = `Go to move #${move} (${Math.floor(lastsq / 3)}, ${lastsq % 3})`;
     } else {
       desc = "Go to game start";
     }
 
-    const style = props.stepNumber === move ? "current_move" : null;
+    const style = props.stepNumber === move ? "current_move" : undefined;
     return (
       <li key={move}>
         <button className={style} onClick={() => props.onToggleClicked(move)}>
@@ -82,7 +108,7 @@ function MoveHistory(props) {
   );
 }
 
-function Game(props) {
+function Game(props: {}) {
   const [history, setHistory] = useState([
     {
       squares: Array(9).fill(null),
@@ -92,7 +118,7 @@ function Game(props) {
   const [stepNumber, setStepNumber] = useState(0);
   const [xIsNext, setXIsNext] = useState(true);
 
-  const handleClick = (i) => {
+  const handleClick = (i: number) => {
     const newHistory = history.slice(0, stepNumber + 1);
     const current = newHistory[newHistory.length - 1];
 
@@ -113,7 +139,7 @@ function Game(props) {
     setXIsNext(!xIsNext);
   };
 
-  const jumpTo = (step) => {
+  const jumpTo = (step: number) => {
     setStepNumber(step);
     setXIsNext(step % 2 === 0);
   };
@@ -153,7 +179,7 @@ function Game(props) {
 
 ReactDOM.render(<Game />, document.getElementById("root"));
 
-function calculateWinner(squares) {
+function calculateWinner(squares: Squares): number[] | null {
   const lines = [
     [0, 1, 2],
     [3, 4, 5],
